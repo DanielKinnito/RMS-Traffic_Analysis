@@ -1,4 +1,4 @@
-# Accident Severity Prediction
+# Traffic Accident Severity Prediction
 
 ## Overview
 This project focuses on predicting accident severity using machine learning techniques. The dataset undergoes various preprocessing steps, feature engineering, and model training using Random Forest and Gradient Boosting classifiers. Hyperparameter tuning is performed using GridSearchCV to find the best model.
