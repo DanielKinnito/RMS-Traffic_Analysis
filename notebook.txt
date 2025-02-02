@@ -1,0 +1,234 @@
+# Cell 1
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.impute import SimpleImputer
+
+# Cell 2
+# Note: Data Collection
+# In this cell, we will load the accident dataset.
+# We limit the data to the first 200,000 rows for quicker processing.
+
+# Cell 3
+# Data Collection
+accident_data = pd.read_csv("Accident_Information.csv", nrows=200000)
+
+# Cell 4
+# Note: Data Preprocessing
+# In this cell, we will clean the data by removing unnecessary columns.
+
+# Cell 5
+# Data Preprocessing
+# Cleaning the Data
+# Remove unnecessary columns
+columns_to_drop = [
+    "Accident_Index",
+    "Longitude",
+    "Latitude",
+    "Location_Easting_OSGR",
+    "Location_Northing_OSGR",
+    "Date",
+    "Time",
+]
+accident_data_cleaned = accident_data.drop(columns=columns_to_drop)
+
+# Cell 6
+# Note: Handling Missing Values
+# In this cell, we will handle missing values for both numeric and categorical columns.
+
+# Cell 7
+# Separate columns into numeric and categorical
+numeric_columns = accident_data_cleaned.select_dtypes(include=[np.number]).columns
+categorical_columns = accident_data_cleaned.select_dtypes(exclude=[np.number]).columns
+
+# Cell 8
+# Handle missing values for numeric columns (using median)
+imputer_numeric = SimpleImputer(strategy='median')
+accident_data_cleaned[numeric_columns] = imputer_numeric.fit_transform(accident_data_cleaned[numeric_columns])
+
+# Cell 9
+# Handle missing values for categorical columns (using the mode)
+imputer_categorical = SimpleImputer(strategy='most_frequent')
+accident_data_cleaned[categorical_columns] = imputer_categorical.fit_transform(accident_data_cleaned[categorical_columns])
+
+# Cell 10
+# Note: Feature Engineering
+# In this cell, we will encode categorical variables and standardize continuous variables.
+
+# Cell 11
+# Feature Engineering
+# Encoding categorical variables using LabelEncoder
+for col in categorical_columns:
+    if col in accident_data_cleaned.columns:  # Ensure column exists
+        accident_data_cleaned[col] = LabelEncoder().fit_transform(accident_data_cleaned[col])
+
+# Cell 12
+# Example: Converting 'Weather_Conditions' to numeric using mapping
+weather_conditions_mapping = {"Clear": 0, "Rain": 1, "Snow": 2, "Fog": 3, "Other": 4}
+if "Weather_Conditions" in accident_data_cleaned.columns:
+    accident_data_cleaned["Weather_Conditions"] = accident_data_cleaned["Weather_Conditions"].map(weather_conditions_mapping)
+
+# Cell 13
+# Standardizing continuous variables (e.g., 'Speed_limit')
+scaler = StandardScaler()
+if "Speed_limit" in accident_data_cleaned.columns:
+    accident_data_cleaned["Speed_limit"] = scaler.fit_transform(accident_data_cleaned[["Speed_limit"]])
+
+# Cell 14
+# Note: Exploratory Data Analysis (EDA)
+# In this cell, we will visualize the distribution of 'Accident_Severity' and analyze feature correlations.
+
+# Cell 15
+# Exploratory Data Analysis (EDA)
+# Visualizing the distribution of 'Accident_Severity'
+plt.figure(figsize=(8, 6))
+sns.countplot(data=accident_data_cleaned, x="Accident_Severity")
+plt.title("Accident Severity Distribution")
+plt.xlabel("Accident Severity")
+plt.ylabel("Count")
+plt.show()
+
+# Cell 16
+# Correlation matrix (if needed to analyze feature correlations)
+correlation_matrix = accident_data_cleaned.corr()
+plt.figure(figsize=(12, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
+plt.title("Correlation Matrix")
+plt.show()
+
+# Cell 17
+# Note: Feature Selection
+# In this cell, we will select the top 10 features using SelectKBest.
+
+# Cell 18
+# Feature Selection
+# Selecting top 10 features using SelectKBest
+X = accident_data_cleaned.drop("Accident_Severity", axis=1)
+y = accident_data_cleaned["Accident_Severity"]
+selector = SelectKBest(f_classif, k=10)
+X_new = selector.fit_transform(X, y)
+selected_features = X.columns[selector.get_support()]
+
+# Cell 19
+# Visualizing selected features
+plt.figure(figsize=(12, 6))
+sns.barplot(x=selected_features, y=selector.scores_[selector.get_support()])
+plt.title("Top 10 Selected Features")
+plt.xlabel("Features")
+plt.ylabel("Score")
+plt.xticks(rotation=45)
+plt.show()
+
+# Cell 20
+# Note: Splitting Data
+# In this cell, we will split the data into training and testing sets.
+
+# Cell 21
+# Splitting data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X_new, y, test_size=0.2, random_state=42
+)
+
+# Cell 22
+# Note: Training Random Forest Model
+# In this cell, we will train a Random Forest model.
+
+# Cell 23
+# Training a Random Forest model
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
+
+# Cell 24
+# Note: Evaluating Random Forest Model
+# In this cell, we will evaluate the Random Forest model using accuracy and classification report.
+
+# Cell 25
+# Model Evaluation
+# Predictions and evaluation using accuracy and classification report
+y_pred = rf_model.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+# Cell 26
+# Visualizing feature importance from Random Forest
+plt.figure(figsize=(12, 6))
+sns.barplot(x=selected_features, y=rf_model.feature_importances_)
+plt.title("Feature Importance from Random Forest")
+plt.xlabel("Features")
+plt.ylabel("Importance")
+plt.xticks(rotation=45)
+plt.show()
+
+# Cell 27
+# Note: Training Gradient Boosting Model
+# In this cell, we will train a Gradient Boosting model.
+
+# Cell 28
+# Training a Gradient Boosting model
+gb_model = GradientBoostingClassifier(random_state=42)
+gb_model.fit(X_train, y_train)
+
+# Cell 29
+# Note: Evaluating Gradient Boosting Model
+# In this cell, we will evaluate the Gradient Boosting model using accuracy and classification report.
+
+# Cell 30
+# Model Evaluation
+# Predictions and evaluation using accuracy and classification report
+y_pred_gb = gb_model.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, y_pred_gb)}")
+print("Classification Report:")
+print(classification_report(y_test, y_pred_gb))
+
+# Cell 31
+# Visualizing feature importance from Gradient Boosting
+plt.figure(figsize=(12, 6))
+sns.barplot(x=selected_features, y=gb_model.feature_importances_)
+plt.title("Feature Importance from Gradient Boosting")
+plt.xlabel("Features")
+plt.ylabel("Importance")
+plt.xticks(rotation=45)
+plt.show()
+
+# Cell 32
+# Note: Hyperparameter Tuning
+# In this cell, we will perform hyperparameter tuning for the Gradient Boosting model using GridSearchCV.
+
+# Cell 33
+# Hyperparameter Tuning for Gradient Boosting model
+param_grid = {
+    'n_estimators': [100, 200],
+    'learning_rate': [0.01, 0.1],
+    'max_depth': [3, 5]
+}
+grid_search = GridSearchCV(GradientBoostingClassifier(random_state=42), param_grid, cv=3)
+grid_search.fit(X_train, y_train)
+
+# Cell 34
+# Note: Best Model Evaluation
+# In this cell, we will evaluate the best model obtained from GridSearchCV.
+
+# Cell 35
+# Best model evaluation
+best_gb_model = grid_search.best_estimator_
+y_pred_best_gb = best_gb_model.predict(X_test)
+print(f"Best Model Accuracy: {accuracy_score(y_test, y_pred_best_gb)}")
+print("Best Model Classification Report:")
+print(classification_report(y_test, y_pred_best_gb))
+
+# Cell 36
+# Visualizing feature importance from the best Gradient Boosting model
+plt.figure(figsize=(12, 6))
+sns.barplot(x=selected_features, y=best_gb_model.feature_importances_)
+plt.title("Feature Importance from Best Gradient Boosting Model")
+plt.xlabel("Features")
+plt.ylabel("Importance")
+plt.xticks(rotation=45)
+plt.show()
